@@ -132,13 +132,15 @@ class DTWorkflow(CLIHelper, CrabHelper):
 
     def add_input_files(self):
         run = str(self.options.run).zfill(9)
-        input_folder_central = "/eos/cms/store/data/Commissioning2019/MiniDaq/RAW/v1/"
+        #input_folder_central = "/eos/cms/store/data/Commissioning2019/MiniDaq/RAW/v1/"
+        input_folder_central = os.environ.get('DTSAMPLEDIR','/eos/cms/store/data/Commissioning2019/MiniDaq/RAW/v1/')
         run_folder = input_folder_central + "/" + run[0:3] + "/" + run[3:6] + "/" + run[6:]
         run_folder = run_folder + "/00000"
 
         if os.path.exists(run_folder) :
              files = subprocess.check_output(["ls", run_folder])
-             self.process.source.fileNames = ["file://" + run_folder + "/" + f for f in files.split()]
+             #self.process.source.fileNames = ["file://" + run_folder + "/" + f for f in files.split()]
+             self.process.source.fileNames = ["file://" + run_folder + "/" + f for f in files.split()[0:10]]
         else:
              raise ValueError("Local input files not found in %s" % run_folder)
 
