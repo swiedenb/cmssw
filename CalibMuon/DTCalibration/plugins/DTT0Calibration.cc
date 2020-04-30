@@ -446,9 +446,10 @@ void DTT0Calibration::endJob() {
     const auto& chamber_id = wire_id.chamberId();
     const auto& t0 = wire_t0.second;
     theRelativeT0PerWire.emplace(wire_id, t0 - mean_per_chamber[chamber_id].first);
-    cout << "[DTT0Calibration] Wire " << wire_id << " has    t0 " << theRelativeT0PerWire[wire_id]
-         << " (relative, after even-odd layer corrections)  "
-         << "    sigma " << sqrt(theSigmaT0PerWire[wire_id]) << endl;
+    cout << "[DTT0Calibration] Wire " << wire_id 
+         << " has t0 : "<< theRelativeT0PerWire[wire_id]    << " (relative, after even-odd layer corrections)"
+         << " - "       << theAbsoluteT0PerWire[wire_id]    << " (absolute)"
+         << " - sigma " << sqrt(theSigmaT0PerWire[wire_id]) << endl;
   }
 
   for (const auto& wire_t0 : theRelativeT0PerWire) {
