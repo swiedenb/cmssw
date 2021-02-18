@@ -41,8 +41,11 @@ DTT0Calibration::DTT0Calibration(const edm::ParameterSet& pset)
       tpPeakWidth(pset.getParameter<double>("tpPeakWidth")),
       tpPeakWidthPerLayer(pset.getParameter<double>("tpPeakWidthPerLayer")),
       rejectDigiFromPeak(pset.getParameter<unsigned int>("rejectDigiFromPeak")),
-      hLayerPeaks("hLayerPeaks", "", 3000, 0, 3000),
-      spectrum(20)
+      hLayerPeaks("hLayerPeaks", "", 20000, 100000, 120000),
+      spectrum(200),
+      histosForAllWires(pset.getUntrackedParameter<bool>("histosForAllWires", false)),
+      t0_guess(0),
+      span(10000)
 
 {
   // Get the debug parameter for verbose output
@@ -118,7 +121,12 @@ void DTT0Calibration::analyze(const edm::Event& event, const edm::EventSetup& ev
 
     // Loop over all digis in the given layer
     for (DTDigiCollection::const_iterator digi = digiRange.first; digi != digiRange.second; ++digi) {
-      const double t0 = digi->countsTDC();
+      const double t0 = digi->time();
+      if (nevents == 1)
+      {
+         t0_guess = t0;
+         hLayerPeaks = TH1D("hLayerPeaks", "", 2 * span, t0_guess - span, t0_guess + span);
+      }
       const DTWireId wireIdtmp(layerId, (*digi).wire());
 
       // Use first bunch of events to fill t0 per layer
@@ -127,9 +135,10 @@ void DTT0Calibration::analyze(const edm::Event& event, const edm::EventSetup& ev
         if (not theHistoLayerMap.count(layerId)) {
           theHistoLayerMap[layerId] = TH1I(getHistoName(layerId).c_str(),
                                            "T0 from pulses by layer (TDC counts, 1 TDC count = 0.781 ns)",
-                                           3000,
-                                           0,
-                                           3000);
+                    		           2 * span,
+                    		           t0_guess - span,
+                    		           t0_guess + span
+					   );
           if (debug)
             cout << "  New T0 per Layer Histo: " << theHistoLayerMap[layerId].GetName() << endl;
         }
@@ -146,15 +155,18 @@ void DTT0Calibration::analyze(const edm::Event& event, const edm::EventSetup& ev
 
         //Fill the histos per wire for the chosen cells
         if (std::find(layerIdWithWireHistos.begin(), layerIdWithWireHistos.end(), layerId) !=
-                layerIdWithWireHistos.end() or
-            std::find(wireIdWithHistos.begin(), wireIdWithHistos.end(), wireId) != wireIdWithHistos.end()) {
+            layerIdWithWireHistos.end() or
+            std::find(wireIdWithHistos.begin(),wireIdWithHistos.end(),wireId) != wireIdWithHistos.end() or
+            histosForAllWires)
+        {
           //If it doesn't exist, book it
           if (theHistoWireMap.count(wireId) == 0) {
             theHistoWireMap[wireId] = TH1I(getHistoName(wireId).c_str(),
                                            "T0 from pulses by wire (TDC counts, 1 TDC count = 0.781 ns)",
-                                           7000,
-                                           0,
-                                           7000);
+                       			   2 * span,
+                       			   t0_guess - span,
+                       			   t0_guess + span
+					   );
             if (debug)
               cout << "  New T0 per wire Histo: " << theHistoWireMap[wireId].GetName() << endl;
           }
@@ -247,7 +259,7 @@ void DTT0Calibration::analyze(const edm::Event& event, const edm::EventSetup& ev
                     << std::endl;
           layerIdWithWireHistos.push_back(layerId);
         } else {
-          theTPPeakMap[layerId] = hist.GetMaximumBin();
+	  theTPPeakMap[layerId] = hist.GetBinCenter(hist.GetMaximumBin());
           std::cout << "Peaks to far away from each other in layer " << layerId
                     << " and no good peak found. Taking maximum bin at " << theTPPeakMap[layerId] << ". Please check!"
                     << std::endl;
@@ -371,11 +383,16 @@ void DTT0Calibration::endJob() {
       const auto& wireId = wiret0.first;
       if (wireId.layerId().superlayerId() == superlayer_id) {
         const auto& t0 = wiret0.second / nDigiPerWire[wireId];
-        if (wireId.layerId().layer() % 2 and
-            abs(t0 - mean_sigma_odd[superlayer_id].first) < 2 * mean_sigma_odd[superlayer_id].second) {
-          values_odd.push_back(t0);
-          sigmas_odd.push_back(sqrt(theSigmaT0PerWire[wireId]));
-        } else {
+	  if (wireId.layerId().layer() % 2)
+ 	  {
+          	if (abs(t0 - mean_sigma_odd[superlayer_id].first) < 2 * mean_sigma_odd[superlayer_id].second)
+          	{
+          	   values_odd.push_back(t0);
+          	   sigmas_odd.push_back(sqrt(theSigmaT0PerWire[wireId]));
+          	}
+	  }
+          else 
+          {
           if (abs(t0 - mean_sigma_even[superlayer_id].first) < 2 * mean_sigma_even[superlayer_id].second) {
             values_even.push_back(t0);
             sigmas_even.push_back(sqrt(theSigmaT0PerWire[wireId]));
@@ -420,6 +437,7 @@ void DTT0Calibration::endJob() {
     const auto& means = chamber_mean.second;
     const auto& sigmas = sigmas_per_chamber[chamber_id];
     mean_per_chamber.emplace(chamber_id, unweighted_mean_function(means, sigmas));
+    std::cout << "CHAMBER MEAN " << chamber_id << " " << unweighted_mean_function(means, sigmas).first << std::endl;
   }
 
   // calculate relative values
@@ -428,15 +446,19 @@ void DTT0Calibration::endJob() {
     const auto& chamber_id = wire_id.chamberId();
     const auto& t0 = wire_t0.second;
     theRelativeT0PerWire.emplace(wire_id, t0 - mean_per_chamber[chamber_id].first);
-    cout << "[DTT0Calibration] Wire " << wire_id << " has    t0 " << theRelativeT0PerWire[wire_id]
-         << " (relative, after even-odd layer corrections)  "
-         << "    sigma " << sqrt(theSigmaT0PerWire[wire_id]) << endl;
+    cout << "[DTT0Calibration] Wire " << wire_id 
+         << " has t0 : "<< theRelativeT0PerWire[wire_id]    << " (relative, after even-odd layer corrections)"
+         << " - "       << theAbsoluteT0PerWire[wire_id]    << " (absolute)"
+         << " - sigma " << sqrt(theSigmaT0PerWire[wire_id]) << endl;
   }
 
   for (const auto& wire_t0 : theRelativeT0PerWire) {
     const auto& wire_id = wire_t0.first;
     const auto& t0 = wire_t0.second;
-    t0sWRTChamber->set(wire_id, t0, sqrt(theSigmaT0PerWire[wire_id]), DTTimeUnits::counts);
+    t0sWRTChamber->set(wire_id, t0, sqrt(theSigmaT0PerWire[wire_id]),
+    //DTTimeUnits::counts //FIXME
+    DTTimeUnits::ns
+    );
   }
 
   ///Write the t0 map into DB
