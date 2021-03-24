@@ -48,7 +48,8 @@ DTTTrigCalibration::DTTTrigCalibration(const edm::ParameterSet& pset) {
   findTMeanAndSigma = pset.getUntrackedParameter<bool>("fitAndWrite", false);
 
   // The TDC time-window (ns)
-  maxTDCCounts = 5000 * pset.getUntrackedParameter<int>("tdcRescale", 1);
+  maxTDCCounts = 5000 * pset.getUntrackedParameter<int>("tdcRescaleMax", 1);
+  minTDCCounts = 5000 * pset.getUntrackedParameter<int>("tdcRescaleMin", 1);
   //The maximum number of digis per layer
   maxDigiPerLayer = pset.getUntrackedParameter<int>("maxDigiPerLayer", 10);
 
@@ -153,7 +154,7 @@ void DTTTrigCalibration::analyze(const edm::Event& event, const edm::EventSetup&
       // Book the histogram
       theFile->cd();
       hTBox =
-          new TH1F(getTBoxName(slId).c_str(), "Time box (ns)", int(0.25 * 32.0 * maxTDCCounts / 25.0), 0, maxTDCCounts);
+          new TH1F(getTBoxName(slId).c_str(), "Time box (ns)", int(0.25 * 32.0 * ( maxTDCCounts + minTDCCounts) / 25.0), -minTDCCounts, maxTDCCounts);
       if (debug)
         cout << "  New Time Box: " << hTBox->GetName() << endl;
       theHistoMap[slId] = hTBox;

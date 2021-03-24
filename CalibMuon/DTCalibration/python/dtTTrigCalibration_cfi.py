@@ -19,7 +19,8 @@ dtTTrigCalibration = cms.EDAnalyzer("DTTTrigCalibration",
     # Parameter set for t0 subtraction module
     tTrigModeConfig = cms.untracked.PSet(debug = cms.untracked.bool(False)),
     # For phase 2
-    tdcRescale = cms.untracked.int32(30),
+    tdcRescaleMax = cms.untracked.int32(30),
+    tdcRescaleMin = cms.untracked.int32(30),
     # Tbox rising edge fit parameter
     sigmaTTrigFit = cms.untracked.double(5.0),
     # the kfactor to be uploaded in the ttrig DB
