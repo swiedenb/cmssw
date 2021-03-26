@@ -65,6 +65,7 @@ private:
 
   // The TDC time-window
   int maxTDCCounts;
+  int minTDCCounts;
   //The maximum number of digis per layer
   int maxDigiPerLayer;
 
