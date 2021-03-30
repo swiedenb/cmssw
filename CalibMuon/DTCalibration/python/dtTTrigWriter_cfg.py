@@ -35,5 +35,6 @@ process.load("CalibMuon.DTCalibration.dtTTrigWriter_cfi")
 process.dtTTrigWriter.kFactor = -0.7
 process.dtTTrigWriter.rootFileName = 'DTTimeBoxes.root'
 process.dtTTrigWriter.debug = False
+process.dtTTrigWriter.slicetest = False
 
 process.p = cms.Path(process.dtTTrigWriter)

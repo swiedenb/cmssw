@@ -25,6 +25,8 @@ class CLIHelper(object):
             action="store_true", help="Do not execute or submit any workflow")
         common_opts_group.add_argument("--input-files-local",
             action="store_true", help="Look for input files locally")
+	common_opts_group.add_argument("--slicetest",
+	    action="store_true", help="Do slicetest (write zeros into db if chamber has no entries) (default: False)")
         return common_opts_parser
 
     @classmethod

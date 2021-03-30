@@ -37,6 +37,8 @@ DTTTrigWriter::DTTTrigWriter(const ParameterSet& pset) {
   // get selected debug option
   debug = pset.getUntrackedParameter<bool>("debug", false);
 
+  // get slice test option
+  slicetest = pset.getUntrackedParameter<bool>("slicetest",false);
   // Open the root file which contains the histos
   theRootInputFile = pset.getUntrackedParameter<string>("rootFileName");
   theFile = new TFile(theRootInputFile.c_str(), "READ");
@@ -91,6 +93,12 @@ void DTTTrigWriter::analyze(const Event& event, const EventSetup& eventSetup) {
       tTrig->set(slId, meanAndSigma.first, meanAndSigma.second, kFactor, DTTimeUnits::ns);
       if (debug) {
         cout << " SL: " << slId << " mean = " << meanAndSigma.first << " sigma = " << meanAndSigma.second << endl;
+      }
+    }
+    else if (slicetest){
+      tTrig->set(slId, 0., 0., 1., DTTimeUnits::ns);
+      if (debug) {
+        cout << " SL: " << slId << " empty. Set to 0." << endl;
       }
     }
   }

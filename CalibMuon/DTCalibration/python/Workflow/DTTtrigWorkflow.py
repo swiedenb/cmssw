@@ -95,6 +95,7 @@ class DTttrigWorkflow( DTWorkflow ):
         self.pset_template = "CalibMuon.DTCalibration.dtTTrigWriter_cfg"
         self.process = tools.loadCmsProcess(self.pset_template)
         self.process.dtTTrigWriter.rootFileName = "file:///" + merged_file
+	self.process.dtTTrigWriter.slicetest = self.options.slicetest
         self.process.PoolDBOutputService.connect = 'sqlite_file:%s' % ttrig_uncorrected_db
         self.process.GlobalTag.globaltag = cms.string(str(self.options.globaltag))
         self.write_pset_file()

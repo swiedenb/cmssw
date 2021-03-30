@@ -48,6 +48,8 @@ private:
   bool debug;
   // the kfactor to be uploaded in the ttrig DB
   double kFactor;
+  // Slice Test flag
+  bool slicetest;
 
   // The file which contains the tMax histograms
   TFile* theFile;

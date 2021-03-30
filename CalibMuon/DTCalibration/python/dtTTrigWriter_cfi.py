@@ -6,5 +6,7 @@ dtTTrigWriter = cms.EDAnalyzer("DTTTrigWriter",
     # Name of the input ROOT file which contains the time boxes
     rootFileName = cms.untracked.string('DTTimeBoxes.root'),
     # the kfactor to be uploaded in the ttrig DB
-    kFactor = cms.untracked.double(-0.7)
+    kFactor = cms.untracked.double(-0.7),
+    # Slice Test flag
+    slicetest = cms.untracked.bool(False)
 )
